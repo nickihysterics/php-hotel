@@ -7,6 +7,7 @@
 - PHP 8.2 (Apache внутри контейнера).
 - Nginx (reverse proxy, самоподписанный TLS).
 - MySQL 8.
+- phpMyAdmin (опционально, для управления БД).
 - Docker + Docker Compose.
 - Composer, PDO.
 - PHPStan, PHP-CS-Fixer.
@@ -38,6 +39,7 @@ docker compose up -d --build
 - https://localhost/ (самоподписанный сертификат)
 - https://hotel.localhost/ (самоподписанный сертификат)
 - Админка: http://localhost/admin/login.php
+- phpMyAdmin: http://localhost:8081/
 
 ## Конфигурация окружения
 
@@ -106,6 +108,7 @@ ADMIN_PASS=HotelDemo2024
 - Администраторы хранятся в таблице `users` с `password_hash` (используется `password_hash()`).
 - Данные клиентов и сотрудников — таблицы `clients` и `associates`.
 - Сессии — стандартные PHP-сессии (по умолчанию файловое хранение в контейнере).
+- Для просмотра структуры БД можно использовать phpMyAdmin: `http://localhost:8081/`.
 
 ## Миграции для существующей БД
 
