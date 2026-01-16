@@ -1,0 +1,7 @@
+.git
+.DS_Store
+db-data
+vendor
+node_modules
+storage
+resources
