@@ -86,12 +86,19 @@ ADMIN_PASS=HotelDemo2024
 ## Функционал
 
 - Публичные страницы: главная, список номеров, карточка номера, контакты.
-- Админка: категории, типы номеров, клиенты, сотрудники, бронирования, пользователи.
+- Админка: категории, типы номеров, этажи, виды, типы санузлов, клиенты, сотрудники, бронирования, пользователи.
+- Атрибуты номера: этаж, вид из номера, количество спальных мест, раздельный санузел, тип санузла.
 - Бронирования:
   - статусы `reserved` / `confirmed` / `cancelled`;
   - проверка пересечений по датам;
   - учет доступности по количеству (`quantity`) у типа номера;
   - сумма бронирования считается автоматически, если `total = 0`.
+- Аналитика и экспорт в Excel (CSV).
+
+## Аналитика и экспорт
+
+- Аналитика: `http://localhost/admin/analytics.php`
+- Экспорт: `http://localhost/admin/exports.php`
 
 ## Как редактировать проект
 
@@ -128,7 +135,30 @@ ADMIN_PASS=HotelDemo2024
 
 ## Миграции для существующей БД
 
-Если база уже была создана раньше, добавьте новые поля/индексы/ограничения:
+Если база уже была создана раньше, проще пересоздать volume:
+
+```
+docker compose down -v
+docker compose up -d --build
+```
+
+Если нужно сохранить данные, добавьте новые справочники и поля вручную (выполняйте команды по очереди, уже существующие можно пропустить):
+
+```
+docker compose exec -T db mysql -uroot -proot hotel -e "CREATE TABLE IF NOT EXISTS room_views (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(100) NOT NULL, PRIMARY KEY (id), UNIQUE KEY room_views_name_unique (name)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+docker compose exec -T db mysql -uroot -proot hotel -e "CREATE TABLE IF NOT EXISTS bathroom_types (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(100) NOT NULL, PRIMARY KEY (id), UNIQUE KEY bathroom_types_name_unique (name)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+docker compose exec -T db mysql -uroot -proot hotel -e "CREATE TABLE IF NOT EXISTS floors (id INT UNSIGNED NOT NULL AUTO_INCREMENT, name VARCHAR(100) NOT NULL, level INT NOT NULL, view_id INT UNSIGNED NOT NULL, PRIMARY KEY (id), UNIQUE KEY floors_level_unique (level)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+docker compose exec -T db mysql -uroot -proot hotel -e "INSERT IGNORE INTO room_views (name) VALUES ('Город'), ('Парк'), ('Внутренний двор');"
+docker compose exec -T db mysql -uroot -proot hotel -e "INSERT IGNORE INTO bathroom_types (name) VALUES ('Душевая кабина'), ('Ванна'), ('Ванна и душевая');"
+docker compose exec -T db mysql -uroot -proot hotel -e \"INSERT IGNORE INTO floors (name, level, view_id) VALUES ('1 этаж', 1, 1), ('2 этаж', 2, 1), ('3 этаж', 3, 1);\"
+docker compose exec -T db mysql -uroot -proot hotel -e "ALTER TABLE rooms ADD COLUMN floor_id INT UNSIGNED NOT NULL DEFAULT 1 AFTER quantity;"
+docker compose exec -T db mysql -uroot -proot hotel -e "ALTER TABLE rooms ADD COLUMN view_id INT UNSIGNED NOT NULL DEFAULT 1 AFTER floor_id;"
+docker compose exec -T db mysql -uroot -proot hotel -e "ALTER TABLE rooms ADD COLUMN bed_count INT UNSIGNED NOT NULL DEFAULT 1 AFTER view_id;"
+docker compose exec -T db mysql -uroot -proot hotel -e "ALTER TABLE rooms ADD COLUMN bathroom_separate TINYINT(1) NOT NULL DEFAULT 0 AFTER bed_count;"
+docker compose exec -T db mysql -uroot -proot hotel -e "ALTER TABLE rooms ADD COLUMN bathroom_type_id INT UNSIGNED NOT NULL DEFAULT 1 AFTER bathroom_separate;"
+```
+
+Также (при необходимости) примените миграции для статусов бронирований:
 
 ```
 docker compose exec -T db mysql -uroot -proot hotel -e "ALTER TABLE rooms ADD COLUMN quantity INT UNSIGNED NOT NULL DEFAULT 1 AFTER price;"

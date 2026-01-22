@@ -14,26 +14,39 @@ $loadOptions = static function (PDO $pdo, string $table, string $labelExpression
 };
 
 $loadRoomRows = static function (PDO $pdo): array {
-    $sql = 'SELECT rooms.id, rooms.number, rooms.price, rooms.quantity, categories.name AS category'
+    $sql = 'SELECT rooms.id, rooms.number, rooms.price, rooms.quantity,'
+        . ' categories.name AS category,'
+        . ' floors.level AS floor_level, floors.name AS floor_name,'
+        . ' room_views.name AS view_name'
         . ' FROM rooms'
         . ' INNER JOIN categories ON categories.id = rooms.category_id'
-        . ' ORDER BY rooms.number';
+        . ' INNER JOIN floors ON floors.id = rooms.floor_id'
+        . ' INNER JOIN room_views ON room_views.id = rooms.view_id'
+        . ' ORDER BY floors.level, rooms.number';
     return $pdo->query($sql)->fetchAll();
 };
 
 $loadRoomListOptions = static function (PDO $pdo) use ($loadRoomRows): array {
     $options = [];
     foreach ($loadRoomRows($pdo) as $room) {
-        $options[$room['id']] = sprintf('Тип %s - %s', $room['number'], $room['category']);
+        $options[$room['id']] = sprintf(
+            'Тип %s - %s - %s',
+            $room['number'],
+            $room['category'],
+            $room['floor_name']
+        );
     }
     return $options;
 };
 
 $loadAvailableRoomRows = static function (PDO $pdo, string $dateIn, string $dateOut, ?int $excludeBookingId = null): array {
     $sql = 'SELECT rooms.id, rooms.number, rooms.price, rooms.quantity, categories.name AS category,'
+        . ' floors.level AS floor_level, floors.name AS floor_name, room_views.name AS view_name,'
         . ' COALESCE(booking_usage.booked, 0) AS booked'
         . ' FROM rooms'
         . ' INNER JOIN categories ON categories.id = rooms.category_id'
+        . ' INNER JOIN floors ON floors.id = rooms.floor_id'
+        . ' INNER JOIN room_views ON room_views.id = rooms.view_id'
         . ' LEFT JOIN ('
         . ' SELECT bookings.room_id, COUNT(*) AS booked'
         . ' FROM bookings'
@@ -85,9 +98,11 @@ $loadRoomOptions = static function (PDO $pdo, array $formValues = [], ?int $edit
             ? sprintf('Свободно: %d', (int) $room['available'])
             : sprintf('Всего: %d', (int) $room['quantity']);
         $options[$room['id']] = sprintf(
-            'Тип %s - %s - %s руб./сутки - %s',
+            'Тип %s - %s - %s - вид: %s - %s руб./сутки - %s',
             $room['number'],
             $room['category'],
+            $room['floor_name'],
+            $room['view_name'],
             $price,
             $suffix
         );
